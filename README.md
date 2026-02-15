@@ -23,6 +23,12 @@ go get github.com/inkcheck/readability
 
 ### CLI
 
+Using Homebrew:
+
+```bash
+brew install inkcheck/tap/readability
+```
+
 Build from source:
 
 ```bash
