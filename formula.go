@@ -51,7 +51,7 @@ func (a *Analysis) ColemanLiauIndex() float64 {
 	if l == 0 || sen == 0 {
 		return 0
 	}
-	return 0.058*l - 0.296*sen - 15.8
+	return 0.0588*l - 0.296*sen - 15.8
 }
 
 // AutomatedReadabilityIndex calculates the Automated Readability Index.
@@ -183,7 +183,7 @@ func (a *Analysis) Rix() float64 {
 }
 
 // DaleChallReadabilityScoreV2 calculates the New Dale-Chall Readability Score.
-// Unlike v1, uses syllable_threshold=2 and checks raw_score > 0.05 for adjustment.
+// Unlike v1, uses syllable_threshold=2 when identifying difficult words.
 func (a *Analysis) DaleChallReadabilityScoreV2() float64 {
 	if a.wordCount == 0 {
 		return 0
@@ -191,7 +191,7 @@ func (a *Analysis) DaleChallReadabilityScoreV2() float64 {
 	asl := a.wordsPerSentence
 	pctDifficult := float64(a.difficultWords2) / float64(a.wordCount) * 100
 	score := 0.1579*pctDifficult + 0.0496*asl
-	if score > 0.05 {
+	if pctDifficult > 5 {
 		score += 3.6365
 	}
 	return score
@@ -216,7 +216,19 @@ func (a *Analysis) ReadingTime() float64 {
 }
 
 // TextStandard estimates grade level as the mode of grade estimates from multiple formulas.
+// The result is clamped to grades 1-18 (kindergarten through graduate school).
 func (a *Analysis) TextStandard() float64 {
+	return math.Max(minGrade, math.Min(a.rawTextStandard(), maxGrade))
+}
+
+// Grade bounds for TextStandard.
+const (
+	minGrade = 1
+	maxGrade = 18
+)
+
+// rawTextStandard returns the unclamped mode of grade estimates.
+func (a *Analysis) rawTextStandard() float64 {
 	if a.wordCount == 0 {
 		return 0
 	}

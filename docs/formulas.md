@@ -105,9 +105,8 @@ familiar words), add 3.6365 to the raw score.
 
 **Formula name:** `dale_chall_readability_score_v2`
 
-A variant that uses a syllable threshold of 2 when identifying difficult words,
-and triggers the adjustment when the raw score exceeds 0.05 rather than when
-the difficult-word percentage exceeds 5%.
+A variant that uses a syllable threshold of 2 when identifying difficult words.
+As with the original, 3.6365 is added when more than 5% of words are difficult.
 
 ## Linsear Write Formula
 
@@ -181,7 +180,8 @@ difficult text.
 
 Computes the grade level from multiple formulas (Flesch-Kincaid, Flesch Reading
 Ease, SMOG, Coleman-Liau, ARI, Dale-Chall, Linsear Write, and Gunning Fog),
-then returns the most frequent (mode) grade level as a consensus estimate.
+then returns the most frequent (mode) grade level as a consensus estimate. The
+result is clamped to grades 1-18 (kindergarten through graduate school).
 
 The `Analyzer.TextStandardString` method returns a human-readable string like
 "6th and 7th grade".

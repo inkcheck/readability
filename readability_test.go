@@ -177,10 +177,13 @@ func TestColemanLiauIndex(t *testing.T) {
 		want float64
 	}{
 		{"empty", "", 0.0},
-		{"easy", easyText, 5.4},
-		{"short", shortText, 6.12},
-		{"punct", punctText, 6.249},
-		{"long", longText, 9.134},
+		{"easy", easyText, 5.738},
+		{"short", shortText, 6.504},
+		{"punct", punctText, 6.592},
+		{"long", longText, 9.497},
+		{"three sentences", "Readability formulas estimate how hard a passage is to read. " +
+			"Teachers often use them when choosing material for students. " +
+			"The Coleman-Liau index relies on characters instead of syllables.", 13.789},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -365,7 +368,7 @@ func TestTextStandard(t *testing.T) {
 		text string
 		want float64
 	}{
-		{"empty", "", 0.0},
+		{"empty", "", 1.0},
 		{"easy", easyText, 4.0},
 		{"short", shortText, 2.0},
 		{"punct", punctText, 6.0},
@@ -556,7 +559,7 @@ func TestTextStandardString(t *testing.T) {
 		text string
 		want string
 	}{
-		{"empty", "", "-1st and 0th grade"},
+		{"empty", "", "0th and 1st grade"},
 		{"easy", easyText, "3rd and 4th grade"},
 		{"short", shortText, "1st and 2nd grade"},
 		{"punct", punctText, "5th and 6th grade"},
@@ -693,5 +696,65 @@ func TestEmptyText(t *testing.T) {
 		if math.IsNaN(score) || math.IsInf(score, 0) {
 			t.Errorf("Score on empty for %q non-finite: %f", f, score)
 		}
+	}
+}
+
+// TestDaleChallV2AdjustmentThreshold checks the 5% difficult-word threshold.
+// From textstat: tests/textstat/test_dale_chall_readability_score_v2.py
+func TestDaleChallV2AdjustmentThreshold(t *testing.T) {
+	const prefix = "The quizzical cat sat on the mat and watched the dog play by the tree in the "
+	tests := []struct {
+		name      string
+		text      string
+		words     int
+		difficult int
+		want      float64
+	}{
+		{"no difficult words", "The cat sat on the mat.", 6, 0, 0.2976},
+		{"below five percent", prefix + "bright warm sun today.", 21, 1, 1.7935047619},
+		{"exactly five percent", prefix + "bright warm sun.", 20, 1, 1.7815},
+		{"above five percent", prefix + "warm sun.", 19, 1, 5.4099526316},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := NewAnalysis(tt.text)
+			if a.wordCount != tt.words {
+				t.Errorf("wordCount = %d, want %d", a.wordCount, tt.words)
+			}
+			if a.difficultWords2 != tt.difficult {
+				t.Errorf("difficultWords2 = %d, want %d", a.difficultWords2, tt.difficult)
+			}
+			if got := a.DaleChallReadabilityScoreV2(); math.Abs(got-tt.want) > 1e-6 {
+				t.Errorf("DaleChallReadabilityScoreV2 = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestTextStandardBounds checks clamping to grades 1-18.
+// From textstat: tests/textstat/test_text_standard.py
+func TestTextStandardBounds(t *testing.T) {
+	const verySimple = "I am simple text"
+	const veryComplex = "Epistemological paradigms invariably necessitate hermeneutic scrutiny " +
+		"of phenomenological constructs through dialectical methodologies."
+	tests := []struct {
+		name      string
+		text      string
+		want      float64
+		wantLabel string
+	}{
+		{"very simple", verySimple, 1, "0th and 1st grade"},
+		{"very complex", veryComplex, 18, "17th and 18th grade"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := NewAnalysis(tt.text)
+			if got := a.TextStandard(); got != tt.want {
+				t.Errorf("TextStandard = %v, want %v", got, tt.want)
+			}
+			if got := a.TextStandardString(); got != tt.wantLabel {
+				t.Errorf("TextStandardString = %q, want %q", got, tt.wantLabel)
+			}
+		})
 	}
 }
